@@ -1,0 +1,38 @@
+# 베이스 이미지 *우분투와쿠다설치되어있는이미지파일
+FROM bert_container:latest
+
+# 환경 변수 설정
+ENV DEBIAN_FRONTEND=noninteractive
+
+# 패키지 설치
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    cuda-toolkit-12-0 \
+    openssh-server \
+    python3 \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# SSH 서버 설정
+RUN mkdir /var/run/sshd \
+    && echo 'root:password' | chpasswd \
+    && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
+    && echo "PermitUserEnvironment yes" >> /etc/ssh/sshd_config \
+    && echo "LD_LIBRARY_PATH=/usr/local/cuda/lib64" >> /etc/environment \
+    && ssh-keygen -A
+
+# Python 패키지 설치
+RUN pip3 install --no-cache-dir \
+    tensorflow \
+    torch \
+    transformers \
+    pandas \
+    scikit-learn
+
+# 작업 디렉토리 설정
+WORKDIR /app
+
+# 포트 열기
+EXPOSE 22
+
+# SSH 서비스 시작
+CMD ["/usr/sbin/sshd", "-D"]
